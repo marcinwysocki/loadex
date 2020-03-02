@@ -12,10 +12,11 @@ defmodule Loadex.Runner do
     DynamicSupervisor.init(strategy: :one_for_one, max_restarts: 1000, max_seconds: 1)
   end
 
-  def run(%{restart: restart}) do
-    restart_strategy = if restart, do: :transient, else: :temporary
+  def run(opts \\ [restart: false, scenario: nil]) do
+    restart_strategy = if opts[:restart], do: :transient, else: :temporary
 
-    load_scenarios()
+    opts[:scenario]
+    |> load_scenarios()
     |> IO.inspect(label: "Scenarios")
     |> Stream.map(fn mod ->
       specs = apply(mod, :__setup__, [])
@@ -39,9 +40,15 @@ defmodule Loadex.Runner do
     Loadex.Worker.start_link(mod, spec)
   end
 
-  defp load_scenarios do
+  defp load_scenarios(nil) do
     File.ls!("./scenarios")
     |> Enum.map(fn file -> Code.compile_file(file, "./scenarios") end)
     |> Enum.map(fn [{mod, _}] -> mod end)
+  end
+
+  defp load_scenarios(file) do
+    [{mod, _}] = Code.compile_file(file)
+
+    [mod]
   end
 end
