@@ -3,6 +3,19 @@ defmodule Loadex do
     Documentation for Loadex.
   """
 
+  def join_cluster(nodes) when is_list(nodes) do
+    nodes
+    |> Enum.map(fn node ->
+      case Node.ping(node) do
+        :pong ->
+          {node, :ok}
+
+        :pang ->
+          {node, :node_down}
+      end
+    end)
+  end
+
   def run(opts \\ [restart: false, scenario: nil, rate: 1_000_000]) do
     opts[:scenario]
     |> load_scenarios()
@@ -13,15 +26,23 @@ defmodule Loadex do
     {:ok, :scenarios_started}
   end
 
-  defp load_scenarios(nil) do
+  def load_scenarios(maybe_scenario) do
+    on_all_nodes(:do_load_scenarios, [maybe_scenario]) |> elem(0) |> List.first()
+  end
+
+  def do_load_scenarios(nil) do
     File.ls!("./scenarios")
     |> Enum.map(fn file -> Code.compile_file(file, "./scenarios") end)
     |> Enum.map(fn [{mod, _}] -> mod end)
   end
 
-  defp load_scenarios(file) do
+  def do_load_scenarios(file) do
     [{mod, _}] = Code.compile_file(file)
 
     [mod]
+  end
+
+  defp on_all_nodes(action, args) do
+    :rpc.multicall(__MODULE__, action, args)
   end
 end

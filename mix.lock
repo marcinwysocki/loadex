@@ -5,6 +5,7 @@
   "csv": {:hex, :csv, "2.3.1", "9ce11eff5a74a07baf3787b2b19dd798724d29a9c3a492a41df39f6af686da0e", [:mix], [{:parallel_stream, "~> 1.0.4", [hex: :parallel_stream, repo: "hexpm", optional: false]}], "hexpm"},
   "elixir_uuid": {:hex, :elixir_uuid, "1.2.1", "dce506597acb7e6b0daeaff52ff6a9043f5919a4c3315abb4143f0b00378c097", [:mix], [], "hexpm"},
   "escalus": {:git, "git://github.com/esl/escalus.git", "2e57435b08d4098d87b94c505bc6056f290de49b", [tag: "4.0.0"]},
+  "ex_hash_ring": {:hex, :ex_hash_ring, "3.0.0", "da32c83d7c6d964b9537eb52f27bad0a3a6f7012efdc2749e11a5f268b120b6b", [:mix], [], "hexpm"},
   "exml": {:git, "https://github.com/esl/exml.git", "5059e8f33cb94cdded30dbbfd02eb41f8d920c92", [ref: "5059e8f"]},
   "fusco": {:git, "https://github.com/esl/fusco.git", "0a428471aefb3a38207c2141249181e6c018e565", [ref: "0a428471"]},
   "gun": {:git, "https://github.com/ninenines/gun.git", "02fa5f3606b5e18fb21fe48afcc73dad71b36ec9", [ref: "02fa5f3"]},
