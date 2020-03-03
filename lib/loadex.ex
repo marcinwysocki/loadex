@@ -3,7 +3,25 @@ defmodule Loadex do
     Documentation for Loadex.
   """
 
-  def run(opts \\ %{restart: false}) do
-    Loadex.Runner.run(opts)
+  def run(opts \\ [restart: false, scenario: nil]) do
+    opts[:scenario]
+    |> load_scenarios()
+    |> IO.inspect(label: "Scenarios")
+    |> Stream.map(&Loadex.Runner.run(&1, opts[:restart]))
+    |> Stream.run()
+
+    {:ok, :scenarios_started}
+  end
+
+  defp load_scenarios(nil) do
+    File.ls!("./scenarios")
+    |> Enum.map(fn file -> Code.compile_file(file, "./scenarios") end)
+    |> Enum.map(fn [{mod, _}] -> mod end)
+  end
+
+  defp load_scenarios(file) do
+    [{mod, _}] = Code.compile_file(file)
+
+    [mod]
   end
 end

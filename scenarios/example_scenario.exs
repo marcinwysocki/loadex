@@ -8,12 +8,12 @@ defmodule ExampleScenario do
   scenario index do
     task = Task.async(fn -> IO.puts("My number is #{index}!") end)
 
-    (index * 100)..(index * 200) |> Enum.random() |> :timer.sleep()
+    (index * 10000)..(index * 20000) |> Enum.random() |> :timer.sleep()
 
     Task.await(task)
   end
 
-  teardown _index do
-    # whatever
+  teardown index do
+    IO.puts("Bye from #{index}!")
   end
 end
