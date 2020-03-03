@@ -21,6 +21,6 @@ defmodule Loadex.MixProject do
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
-    []
+    [{:hammer, "~> 6.0"}]
   end
 end

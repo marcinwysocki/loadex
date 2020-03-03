@@ -1,6 +1,6 @@
 # Loadex
 
-**A simple, no-dependencies load test runner for Elixir.**
+**A simple load test runner for Elixir.**
 
 ## Installation
 
