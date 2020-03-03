@@ -8,6 +8,7 @@ defmodule Loadex.Application do
   def start(_type, _args) do
     children = [
       Loadex.Runner,
+      Loadex.Runner.Supervisor,
       Loadex.Metrics
     ]
 

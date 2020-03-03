@@ -1,4 +1,4 @@
-defmodule Loadex.Worker do
+defmodule Loadex.Runner.Worker do
   alias Loadex.Metrics
   alias Loadex.Scenario.Spec
 

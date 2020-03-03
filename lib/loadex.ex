@@ -3,11 +3,11 @@ defmodule Loadex do
     Documentation for Loadex.
   """
 
-  def run(opts \\ [restart: false, scenario: nil]) do
+  def run(opts \\ [restart: false, scenario: nil, rate: 1_000_000]) do
     opts[:scenario]
     |> load_scenarios()
     |> IO.inspect(label: "Scenarios")
-    |> Stream.map(&Loadex.Runner.run(&1, opts[:restart]))
+    |> Stream.map(&Loadex.Runner.run(&1, opts[:restart], opts[:rate]))
     |> Stream.run()
 
     {:ok, :scenarios_started}
