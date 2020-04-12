@@ -15,7 +15,7 @@ defmodule Loadex.Runner.Default do
     {:ok, init_arg}
   end
 
-  def handle_cast({:run_spec, spec, restart_strategy, mod, rate, retries} = msg, state) do
+  def handle_cast({:run_spec, spec, restart_strategy, mod, rate, retries}, state) do
     case Hammer.check_rate("#{mod}", 1000, rate) do
       {:allow, _count} ->
         DynamicSupervisor.start_child(Loadex.Runner.Supervisor, %{
@@ -26,7 +26,11 @@ defmodule Loadex.Runner.Default do
 
       {:deny, _limit} ->
         new_retries = retries + 1
-        :timer.apply_after(5000 * new_retries, GenServer, :cast, [__MODULE__, msg])
+
+        :timer.apply_after(1000, GenServer, :cast, [
+          __MODULE__,
+          {:run_spec, spec, restart_strategy, mod, rate, new_retries}
+        ])
     end
 
     {:noreply, state}
