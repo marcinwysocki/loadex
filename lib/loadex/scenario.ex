@@ -15,6 +15,7 @@ defmodule Loadex.Scenario do
   defmacro __using__(opts \\ []) do
     quote do
       import Loadex.Scenario, only: [setup: 1, scenario: 2, teardown: 2, verbose: 1]
+      import Loadex.Scenario.Helpers
 
       @scenario_key Atom.to_string(__MODULE__)
                     |> String.replace("Elixir.", "")

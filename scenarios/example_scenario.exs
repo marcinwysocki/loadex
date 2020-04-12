@@ -12,6 +12,7 @@ defmodule ExampleScenario do
       task = Task.async(fn -> IO.puts("My number is #{index}!") end)
       :timer.sleep(1000)
       Task.await(task)
+      flush_messages()
     end
   end
 
