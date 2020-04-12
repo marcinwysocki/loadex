@@ -2,7 +2,7 @@ defmodule ExampleScenario do
   use Loadex.Scenario
 
   setup do
-    1..100
+    1..10000
   end
 
   scenario index do
@@ -10,7 +10,7 @@ defmodule ExampleScenario do
 
     task = Task.async(fn -> IO.puts("My number is #{index}!") end)
 
-    (index * 1)..(index * 100) |> Enum.random() |> :timer.sleep()
+    (index * 1000)..(index * 10000) |> Enum.random() |> :timer.sleep()
 
     Task.await(task)
   end
