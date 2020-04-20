@@ -15,7 +15,7 @@ defmodule Loadex.Runner do
   def run(mod, restart, rate) do
     {:ok, ring} = get_nodes_ring()
     current_node = node()
-    restart_strategy = if restart, do: :transient, else: :temporary
+    restart_strategy = if restart, do: :permanent, else: :temporary
 
     specs = apply(mod, :__setup__, [])
 
