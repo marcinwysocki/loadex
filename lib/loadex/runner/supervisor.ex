@@ -7,6 +7,6 @@ defmodule Loadex.Runner.Supervisor do
 
   @impl true
   def init(_init_arg) do
-    DynamicSupervisor.init(strategy: :one_for_one, max_restarts: 1000, max_seconds: 1)
+    DynamicSupervisor.init(strategy: :one_for_one, max_restarts: 100_000, max_seconds: 5)
   end
 end
