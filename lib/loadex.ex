@@ -16,7 +16,7 @@ defmodule Loadex do
     end)
   end
 
-  def run(opts \\ [restart: false, scenario: nil, rate: 1_000_000]) do
+  def run(opts \\ [restart: false, scenario: nil, rate: 1000]) do
     opts[:scenario]
     |> load_scenarios()
     |> IO.inspect(label: "Scenarios")

@@ -10,12 +10,19 @@ defmodule Loadex.Scenario.Spec do
 end
 
 defmodule Loadex.Scenario do
-  alias Loadex.Metrics
-
   defmacro __using__(opts \\ []) do
     quote do
-      import Loadex.Scenario, only: [setup: 1, scenario: 2, teardown: 2, verbose: 1]
-      import Loadex.Runner.Worker, only: [loop: 2, loop: 3]
+      import Loadex.Scenario,
+        only: [
+          setup: 1,
+          scenario: 2,
+          teardown: 2,
+          verbose: 1,
+          loop: 3,
+          loop: 4,
+          loop_after: 4,
+          loop_after: 5
+        ]
 
       @scenario_key Atom.to_string(__MODULE__)
                     |> String.replace("Elixir.", "")
@@ -38,22 +45,16 @@ defmodule Loadex.Scenario do
         specifications =
           case unquote(block) do
             %Range{} = range ->
-              range |> Enum.map(&Loadex.Scenario.Spec.new(&1, &1))
+              range |> Stream.map(&Loadex.Scenario.Spec.new(&1, &1))
 
-            [%Loadex.Scenario.Spec{} | _] = specs ->
+            %Stream{} = specs ->
               specs
 
-            [] ->
-              IO.puts("Empty setup.")
-              []
-
             _ ->
-              raise "setup must return a list of Loadex.Scenario.Spec structs"
+              raise "setup must return a Stream of Loadex.Scenario.Spec structs or a Range"
           end
 
-        verbose("#{length(specifications)} for \"#{@scenario_name}\"")
-
-        Enum.map(specifications, fn spec ->
+        Stream.map(specifications, fn spec ->
           Loadex.Scenario.Spec.set_scenario(spec, @scenario_key)
         end)
       end
@@ -85,6 +86,47 @@ defmodule Loadex.Scenario do
       def __teardown__(unquote(seed)) do
         verbose("Tearing scenario \"#{@scenario_name}\" down for #{id}.")
 
+        unquote(block)
+      end
+    end
+  end
+
+  defmacro loop(how_many_times, hibernate_or_standby \\ :standby, match, do: block) do
+    hibernate? =
+      case hibernate_or_standby do
+        :hibernate -> true
+        :standby -> false
+      end
+
+    quote bind_quoted: [
+            how_many_times: how_many_times,
+            fun: do_loop(match, block),
+            hibernate?: hibernate?
+          ] do
+      Loadex.Runner.Worker.loop(how_many_times, fun, hibernate: hibernate?)
+    end
+  end
+
+  defmacro loop_after(time, how_many_times, hibernate_or_standby \\ :standby, match, do: block) do
+    hibernate? =
+      case hibernate_or_standby do
+        :hibernate -> true
+        :standby -> false
+      end
+
+    quote bind_quoted: [
+            time: time,
+            how_many_times: how_many_times,
+            fun: do_loop(match, block),
+            hibernate?: hibernate?
+          ] do
+      Loadex.Runner.Worker.loop(how_many_times, fun, sleep: time, hibernate: hibernate?)
+    end
+  end
+
+  defp do_loop(match, block) do
+    quote do
+      fn unquote(match) ->
         unquote(block)
       end
     end

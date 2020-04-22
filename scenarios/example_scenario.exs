@@ -8,25 +8,20 @@ defmodule ExampleScenario do
   scenario index do
     IO.inspect(node(), label: "I'm running #{index} on node")
 
-    loop(
-      1_000_000,
-      fn index ->
-        pid = self()
+    loop_after 1000, 1_000_000, :hibernate, index do
+      pid = self()
 
-        task =
-          Task.async(fn ->
-            IO.puts("My number is #{index}!")
+      task =
+        Task.async(fn ->
+          IO.puts("My number is #{index}!")
 
-            for i <- 1..100 do
-              send(pid, {:random_message, i})
-            end
-          end)
+          for i <- 1..100 do
+            send(pid, {:random_message, i})
+          end
+        end)
 
-        Task.await(task)
-      end,
-      sleep: 1000,
-      hibernate: true
-    )
+      Task.await(task)
+    end
   end
 
   teardown index do

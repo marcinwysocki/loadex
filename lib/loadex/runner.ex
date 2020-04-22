@@ -4,36 +4,25 @@ defmodule Loadex.Runner do
 
   @backend Loadex.Runner.Default
 
-  def child_spec(arg) do
-    apply(@backend, :child_spec, [arg])
-  end
-
-  def start_link(arg) do
-    apply(@backend, :start_link, [arg])
-  end
-
   def run(mod, restart, rate) do
     {:ok, ring} = get_nodes_ring()
-    current_node = node()
     restart_strategy = if restart, do: :transient, else: :temporary
 
     specs = apply(mod, :__setup__, [])
 
-    IO.puts("#{mod} will be run #{length(specs)} times.")
-
     specs
-    |> Stream.each(fn spec ->
-      case which_node?(ring, Spec.id(spec)) do
-        ^current_node ->
-          apply(@backend, :run, [spec, restart_strategy, mod, rate])
-
-        another_node ->
-          :rpc.cast(another_node, @backend, :run, [spec, restart_strategy, mod, rate])
+    |> Stream.chunk_every(rate)
+    |> Stream.zip(Stream.interval(1000))
+    |> Stream.map(fn {specs, _} ->
+      for spec <- specs do
+        :rpc.cast(which_node?(ring, Spec.id(spec)), @backend, :run, [
+          spec,
+          restart_strategy,
+          mod
+        ])
       end
     end)
     |> Stream.run()
-
-    :ok
   end
 
   defp get_nodes_ring() do

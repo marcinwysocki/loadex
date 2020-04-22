@@ -1,5 +1,4 @@
 defmodule Loadex.Runner.Worker do
-  alias Loadex.Metrics
   alias Loadex.Scenario.Spec
 
   use GenServer
