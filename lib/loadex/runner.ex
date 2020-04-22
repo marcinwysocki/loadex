@@ -15,13 +15,14 @@ defmodule Loadex.Runner do
   def run(mod, restart, rate) do
     {:ok, ring} = get_nodes_ring()
     current_node = node()
-    restart_strategy = if restart, do: :permanent, else: :temporary
+    restart_strategy = if restart, do: :transient, else: :temporary
 
     specs = apply(mod, :__setup__, [])
 
     IO.puts("#{mod} will be run #{length(specs)} times.")
 
-    for spec <- specs do
+    specs
+    |> Stream.each(fn spec ->
       case which_node?(ring, Spec.id(spec)) do
         ^current_node ->
           apply(@backend, :run, [spec, restart_strategy, mod, rate])
@@ -29,7 +30,8 @@ defmodule Loadex.Runner do
         another_node ->
           :rpc.cast(another_node, @backend, :run, [spec, restart_strategy, mod, rate])
       end
-    end
+    end)
+    |> Stream.run()
 
     :ok
   end
