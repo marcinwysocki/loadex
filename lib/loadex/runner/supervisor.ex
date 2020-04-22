@@ -1,6 +1,10 @@
 defmodule Loadex.Runner.Supervisor do
   use DynamicSupervisor
 
+  def restart do
+    DynamicSupervisor.stop(__MODULE__)
+  end
+
   def start_link(init_arg) do
     DynamicSupervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
   end

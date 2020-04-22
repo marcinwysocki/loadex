@@ -26,6 +26,10 @@ defmodule Loadex do
     {:ok, :scenarios_started}
   end
 
+  def stop_all do
+    Loadex.Runner.Supervisor.restart()
+  end
+
   def load_scenarios(maybe_scenario) do
     on_all_nodes(:do_load_scenarios, [maybe_scenario]) |> elem(0) |> List.first()
   end

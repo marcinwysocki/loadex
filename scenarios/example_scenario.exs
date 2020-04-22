@@ -8,12 +8,25 @@ defmodule ExampleScenario do
   scenario index do
     IO.inspect(node(), label: "I'm running #{index} on node")
 
-    for i <- 1..1_000_000 do
-      task = Task.async(fn -> IO.puts("My number is #{index}!") end)
-      :timer.sleep(1000)
-      Task.await(task)
-      flush_messages()
-    end
+    loop(
+      1_000_000,
+      fn index ->
+        pid = self()
+
+        task =
+          Task.async(fn ->
+            IO.puts("My number is #{index}!")
+
+            for i <- 1..100 do
+              send(pid, {:random_message, i})
+            end
+          end)
+
+        Task.await(task)
+      end,
+      sleep: 1000,
+      hibernate: true
+    )
   end
 
   teardown index do
