@@ -55,5 +55,6 @@ defmodule Loadex.Runner.Worker do
     end
   end
 
+  def handle_info({:EXIT, _, reason}, state), do: {:stop, reason, state}
   def handle_info(_, state), do: {:noreply, state}
 end
