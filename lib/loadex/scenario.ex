@@ -21,7 +21,8 @@ defmodule Loadex.Scenario do
           loop: 3,
           loop: 4,
           loop_after: 4,
-          loop_after: 5
+          loop_after: 5,
+          end_scenario: 0
         ]
 
       @scenario_key Atom.to_string(__MODULE__)
