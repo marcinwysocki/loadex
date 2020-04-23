@@ -4,7 +4,7 @@ defmodule Loadex.Runner.Worker do
   use GenServer
 
   def loop(left, fun, opts \\ []) do
-    GenServer.cast(self(), {:loop, left, 0, opts, fun})
+    send(self(), {:loop, left, 0, opts, fun})
   end
 
   def start_link(mod, spec) do
@@ -31,7 +31,9 @@ defmodule Loadex.Runner.Worker do
     {:noreply, state}
   end
 
-  def handle_cast({:loop, left, done, opts, fun}, state) do
+  def handle_cast(_, state), do: {:noreply, state}
+
+  def handle_info({:loop, left, done, opts, fun}, state) do
     apply(fun, [done + 1])
 
     case left do
@@ -39,10 +41,11 @@ defmodule Loadex.Runner.Worker do
         :ok
 
       _ ->
-        :timer.apply_after(Keyword.get(opts, :sleep, 1), GenServer, :cast, [
+        Process.send_after(
           self(),
-          {:loop, left - 1, done + 1, opts, fun}
-        ])
+          {:loop, left - 1, done + 1, opts, fun},
+          Keyword.get(opts, :sleep, 1)
+        )
     end
 
     if opts[:hibernate] do
