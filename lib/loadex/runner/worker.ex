@@ -7,6 +7,10 @@ defmodule Loadex.Runner.Worker do
     send(self(), {:loop, left, 0, opts, fun})
   end
 
+  def stop(reason \\ :normal) do
+    send(self(), {:stop, reason})
+  end
+
   def start_link(mod, spec) do
     GenServer.start_link(__MODULE__, %{mod: mod, spec: spec})
   end
@@ -38,7 +42,7 @@ defmodule Loadex.Runner.Worker do
 
     case left do
       1 ->
-        :ok
+        {:noreply, state, 5000}
 
       _ ->
         Process.send_after(
@@ -46,15 +50,17 @@ defmodule Loadex.Runner.Worker do
           {:loop, left - 1, done + 1, opts, fun},
           Keyword.get(opts, :sleep, 1)
         )
-    end
 
-    if opts[:hibernate] do
-      {:noreply, state, :hibernate}
-    else
-      {:noreply, state}
+        if opts[:hibernate] do
+          {:noreply, state, :hibernate}
+        else
+          {:noreply, state}
+        end
     end
   end
 
+  def handle_info({:stop, reason}, state), do: {:stop, reason, state}
+  def handle_info(:timeout, state), do: {:stop, :normal, state}
   def handle_info({:EXIT, _, reason}, state), do: {:stop, reason, state}
   def handle_info(_, state), do: {:noreply, state}
 end

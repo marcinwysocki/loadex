@@ -132,6 +132,12 @@ defmodule Loadex.Scenario do
     end
   end
 
+  defmacro end_scenario do
+    quote do
+      Loadex.Runner.Worker.stop()
+    end
+  end
+
   defmacro verbose(msg) do
     if @opts[:verbose] do
       quote do
