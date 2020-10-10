@@ -1,15 +1,34 @@
-defmodule Loadex.Scenario.Spec do
-  alias __MODULE__
-
-  defstruct [:id, :seed, :scenario]
-
-  def set_scenario(%Spec{} = spec, scenario), do: Map.put(spec, :scenario, scenario)
-  def new(id, seed), do: %Spec{id: id, seed: seed}
-  def id(%Spec{id: id}), do: id
-  def seed(%Spec{seed: seed}), do: seed
-end
-
 defmodule Loadex.Scenario do
+  defmodule Loader do
+    @default_path "./scenarios"
+    def load(maybe_scenario) do
+      do_load_scenarios(maybe_scenario)
+    end
+
+    defp do_load_scenarios(nil) do
+      File.ls!(@default_path)
+      |> Enum.map(&Code.compile_file(&1, @default_path))
+      |> Enum.map(fn [{mod, _}] -> mod end)
+    end
+
+    defp do_load_scenarios(file) do
+      [{mod, _}] = Code.compile_file(file)
+
+      [mod]
+    end
+  end
+
+  defmodule Spec do
+    alias __MODULE__
+
+    defstruct [:id, :seed, :scenario]
+
+    def set_scenario(%Spec{} = spec, scenario), do: Map.put(spec, :scenario, scenario)
+    def new(id, seed), do: %Spec{id: id, seed: seed}
+    def id(%Spec{id: id}), do: id
+    def seed(%Spec{seed: seed}), do: seed
+  end
+
   defmacro __using__(opts \\ []) do
     quote do
       import Loadex.Scenario,
