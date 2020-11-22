@@ -1,4 +1,5 @@
 defmodule Loadex.Runner.Default do
+  @moduledoc false
   alias Loadex.Scenario.Spec
 
   def run(spec, restart_strategy, mod) do

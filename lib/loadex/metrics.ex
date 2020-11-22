@@ -1,4 +1,5 @@
 defmodule Loadex.Metrics do
+  @moduledoc false
   @backend Loadex.Metrics.Noop
 
   def child_spec(opts) do

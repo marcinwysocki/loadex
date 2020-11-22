@@ -1,4 +1,5 @@
 defmodule Loadex.Metrics.Console do
+  @moduledoc false
   use GenServer
 
   def timing(key, time) do

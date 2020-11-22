@@ -1,5 +1,9 @@
 defmodule Loadex.Scenario do
+  @moduledoc """
+  TODO
+  """
   defmodule Loader do
+    @moduledoc false
     @default_path "./scenarios"
     def load(maybe_scenario) do
       do_load_scenarios(maybe_scenario)
@@ -19,6 +23,9 @@ defmodule Loadex.Scenario do
   end
 
   defmodule Spec do
+    @moduledoc """
+    TODO
+    """
     alias __MODULE__
 
     defstruct [:id, :seed, :scenario]

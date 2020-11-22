@@ -1,4 +1,5 @@
 defmodule Loadex.Runner.Supervisor do
+  @moduledoc false
   use DynamicSupervisor
 
   def restart do

@@ -1,4 +1,5 @@
 defmodule Loadex.Runner do
+  @moduledoc false
   alias Loadex.Scenario.Spec
   alias ExHashRing.HashRing
 
