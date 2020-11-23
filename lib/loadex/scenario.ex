@@ -1,6 +1,73 @@
 defmodule Loadex.Scenario do
   @moduledoc """
-  TODO
+  A set of macros used to create Loadex scenarios.
+
+  ## What is a scenario?
+
+  **TL;DR:** *Scenario* is basically a load test case.
+
+  The common problem with load testing is that a synthtetic load doesn't really produce great results.
+  Performance is measured, the application is deployed to production and then it crashes under much smaller load, than we generated using our favourite load testing tool.
+
+  The reason is that synthetic load is, well, synthetic. While testing a single REST endpoint probably may not be a problem, more complex workflows can run into such issues quite easily.
+  It makes a lot of sense, then, for our load tests to reflect the real world use cases of the application we're testing.
+  This may include aquiring a token for authentication, creating a persistent connection using a required protocol, executing some specific handshake or initialization etc.
+
+  It requires expressiveness usually associated with programming languages. Scenarios provide a way of describing complex workflows with Elixir code and libraries.
+  They're then executed concurrently to generate substantial loads.
+
+  ## Creating a scenario
+
+  ### Setup
+
+  Each `Loadex` scenario starts with a `setup/1` macro. It defines how many workers need to be started and what data should they receive as an optional *seed*.
+  This can be done in one of two ways: either returning a `Range`:
+
+      setup do
+        1..10
+      end
+
+  ...or a `Stream` of `Loadex.Scenario.Spec` structs with an unique `id` and a `seed` for each scenario:
+      setup do
+        load_users_from_csv()
+        |> Stream.map(fn %User{id: id} = user ->
+          Loadex.Scenario.Spec.new(id, user)
+        end)
+      end
+
+  For more information please refer to `setup/1`.
+
+  ### Scenario
+
+  This is where magic happens. Scenario's code is executed in a separate process for every element returned by the `setup`.
+  This element, a _seed_, is given as a prameter to the `scenario/2` macro:
+
+      defmodule ExampleScenario do
+        setup do
+          load_users_from_csv()
+          |> Stream.map(fn %User{id: id} = user ->
+            Loadex.Scenario.Spec.new(id, user)
+          end)
+        end
+
+        scenario %User{login: login, password: password} do
+          token = AuthClient.get_token(login, password)
+
+          loop_after 2000, 10, _repetition do
+            ExternalServiceClient.generate_some_load(token)
+          end
+        end
+      end
+
+  This simple scenario above loads a bunch of users from a CSV during the `setup` stage.
+  Then each user concurrently aquires a token and finally starts making calls, every two seconds and ten in total, to the external service we want to test.
+
+  Note that we're using the `loop_after/4` macro instead of `:timer.sleep/1` and `Enum.each/2` or a list comprehension.
+  The reason for this is that our scenario is run in a process and iterating on a list (or `Range`) and `:timer.sleep/1` calls are blocking it.
+  Meanwhile, `loop_after/4` is asynchronous to ensure the worker can receive and process messages.
+
+  While it may not be an issue in your case, it is strongly advised to use built-in helpers to ensure all the performance benefits, that using Elixir and OTP gives us.
+  Please refer to their documentation for more details.
   """
   defmodule Loader do
     @moduledoc false
