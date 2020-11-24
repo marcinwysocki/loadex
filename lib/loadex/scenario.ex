@@ -35,14 +35,14 @@ defmodule Loadex.Scenario do
         end)
       end
 
-  For more information please refer to `setup/1`.
-
   ### Scenario
 
   This is where magic happens. Scenario's code is executed in a separate process for every element returned by the `setup`.
   This element, a _seed_, is given as a prameter to the `scenario/2` macro:
 
       defmodule ExampleScenario do
+        use Loadex.Scenario
+
         setup do
           load_users_from_csv()
           |> Stream.map(fn %User{id: id} = user ->
@@ -68,7 +68,37 @@ defmodule Loadex.Scenario do
 
   While it may not be an issue in your case, it is strongly advised to use built-in helpers to ensure all the performance benefits, that using Elixir and OTP gives us.
   Please refer to their documentation for more details.
+
+  ### Teardown
+
+  If there's any setup you'd like to undo after your scenario finishes, `teardown/2` is a place to do it:
+
+      defmodule ExampleScenario do
+        use Loadex.Scenario
+
+        setup do
+          load_users_from_csv()
+          |> Stream.map(fn %User{id: id} = user ->
+            ExternalServiceClient.create_account(user)
+
+            Loadex.Scenario.Spec.new(id, user)
+          end)
+        end
+
+        scenario %User{login: login, password: password} do
+          # do stuff...
+        end
+
+        teardown %User{} = user do
+          ExternalServiceClient.delete_account(user)
+        end
+      end
+
   """
+  @type match_pattern :: Macro.t()
+  @type do_block :: [{:do, Macro.t()}]
+  @type execution_mode :: :hibernate | :standby
+
   defmodule Loader do
     @moduledoc false
     @default_path "./scenarios"
@@ -90,14 +120,16 @@ defmodule Loadex.Scenario do
   end
 
   defmodule Spec do
-    @moduledoc """
-    TODO
-    """
+    @moduledoc false
     alias __MODULE__
 
     defstruct [:id, :seed, :scenario]
 
     def set_scenario(%Spec{} = spec, scenario), do: Map.put(spec, :scenario, scenario)
+    @spec new(any, any) :: %Spec{}
+    @doc """
+    Creates a `Spec`. `id` must be unique among all concurrently executed cases.
+    """
     def new(id, seed), do: %Spec{id: id, seed: seed}
     def id(%Spec{id: id}), do: id
     def seed(%Spec{seed: seed}), do: seed
@@ -128,8 +160,14 @@ defmodule Loadex.Scenario do
     end
   end
 
+  @spec setup(do_block()) :: Macro.t()
   @doc """
-  Required. Must return either a range or a list of %Loadex.Scenario.Spec{}
+  Sets up the scenario.
+
+  Must return a `Range` or a list of `Loadex.Scenario.Spec` structs.
+  Each value will be passed as a seed to a separate process running the scenario.
+
+  This callback is executed in by the **runner**, before any scenario starts.
   """
   defmacro setup(do: block) do
     quote do
@@ -155,8 +193,15 @@ defmodule Loadex.Scenario do
     end
   end
 
+  @spec scenario(seed :: any(), block :: do_block()) :: Macro.t()
   @doc """
-  Required. Is given a seed from the spec as a parameter.
+  Scenario's implementation.
+
+  A single seed element returned from `setup/2` is passed as an argument.
+
+  As code inside this macro will be executed inside a concurrent process,
+  using helpers provided by this module is strongly advised for operations such as loops,
+  to prevent the process from blocking.
   """
   defmacro scenario(seed, do: block) do
     quote bind_quoted: [seed: Macro.escape(seed), block: escape_block(block)] do
@@ -172,8 +217,13 @@ defmodule Loadex.Scenario do
     end
   end
 
+  @spec teardown(seed :: any(), block :: do_block()) :: Macro.t()
   @doc """
-  Optional. Is given a seed from the spec as a parameter.
+  Cleans up after a scenario.
+
+  Is given a seed from `setup/2` as a parameter.
+
+  This callback is executed by each individual **scenario worker**.
   """
   defmacro teardown(seed, do: block) do
     quote bind_quoted: [seed: Macro.escape(seed), block: escape_block(block)] do
@@ -185,7 +235,25 @@ defmodule Loadex.Scenario do
     end
   end
 
-  defmacro loop(how_many_times, hibernate_or_standby \\ :standby, match, do: block) do
+  @spec loop(
+          iterations :: non_neg_integer(),
+          hibernate_or_standby :: execution_mode(),
+          match :: match_pattern(),
+          do_block()
+        ) :: Macro.t()
+  @doc """
+  A helper for creating an asynchronous, non-blocking loops using message-passing.
+
+      loop 10, iteration do
+        IO.puts("\#{iteration}")
+      end
+
+  Params:
+  * `iterations` - how many times should the code in the `do` block be executed
+  * `hibernate_or_standby` - (optional) allows you to hibernate the underlying `GenServer` between each pass. Defaults to `:standby`
+  * `match` - a match pattern. Currently only an iteration number is passed here
+  """
+  defmacro loop(iterations, hibernate_or_standby \\ :standby, match, do: block) do
     hibernate? =
       case hibernate_or_standby do
         :hibernate -> true
@@ -193,14 +261,34 @@ defmodule Loadex.Scenario do
       end
 
     quote bind_quoted: [
-            how_many_times: how_many_times,
+            iterations: iterations,
             fun: do_loop(match, block),
             hibernate?: hibernate?
           ] do
-      Loadex.Runner.Worker.loop(how_many_times, fun, hibernate: hibernate?)
+      Loadex.Runner.Worker.loop(iterations, fun, hibernate: hibernate?)
     end
   end
 
+  @spec loop_after(
+          time :: non_neg_integer(),
+          iterations :: non_neg_integer(),
+          hibernate_or_standby :: execution_mode(),
+          match :: match_pattern(),
+          do_block()
+        ) :: Macro.t()
+  @doc """
+  A helper for creating an asynchronous, non-blocking loops using message-passing.
+
+      loop_after 100, 10, iteration do
+        IO.puts("\#{iteration}")
+      end
+
+  Params:
+  * `time` - the delay beteewn each pass
+  * `iterations` - how many times should the code in the `do` block be executed
+  * `hibernate_or_standby` - (optional) allows you to hibernate the underlying `GenServer` between each pass. Defaults to `:standby`
+  * `match` - a match pattern. Currently only an iteration number is passed here
+  """
   defmacro loop_after(time, how_many_times, hibernate_or_standby \\ :standby, match, do: block) do
     hibernate? =
       case hibernate_or_standby do
@@ -226,12 +314,16 @@ defmodule Loadex.Scenario do
     end
   end
 
+  @doc """
+  Terminates the scenario. `teardown/2` will be executed after this call.
+  """
   defmacro end_scenario do
     quote do
       Loadex.Runner.Worker.stop()
     end
   end
 
+  @doc false
   defmacro verbose(msg) do
     if @opts[:verbose] do
       quote do
