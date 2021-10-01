@@ -153,4 +153,24 @@ defmodule Loadex.Test.WorkerTest do
       assert_received {:loop, 2}
     end
   end
+
+  describe "wait_for/3" do
+    test "calls the callback with received message" do
+      test_pid = self()
+
+      ControlCenter.add_command(fn _ ->
+        Worker.wait_for({:random_msg, :random_value}, fn msg -> send(test_pid, msg) end)
+      end)
+
+      spec = Spec.new(1, 1)
+      {:ok, pid} = Worker.start_link(FakeScenario, spec)
+
+      refute_received {:random_msg, :random_value}
+
+      send(pid, {:random_msg, :random_value})
+
+
+      assert_receive {:random_msg, :random_value}
+    end
+  end
 end

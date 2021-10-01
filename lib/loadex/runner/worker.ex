@@ -8,12 +8,16 @@ defmodule Loadex.Runner.Worker do
     send(self(), {:loop, left, 0, opts, fun})
   end
 
+  def wait_for(msg, timeout \\ 5000, fun) do
+    send(self(), {:wait_for, msg, timeout, fun})
+  end
+
   def stop(reason \\ :normal) do
     send(self(), {:stop, reason})
   end
 
   def start_link(mod, spec) do
-    GenServer.start_link(__MODULE__, %{mod: mod, spec: spec})
+    GenServer.start_link(__MODULE__, %{mod: mod, spec: spec, wait_for: %{}})
   end
 
   def init(state) do
@@ -60,8 +64,23 @@ defmodule Loadex.Runner.Worker do
     end
   end
 
+  def handle_info({:wait_for, msg, _timeout, fun}, state) do
+    {:noreply, Map.merge(state, %{wait_for: %{msg => fun}})}
+  end
+
   def handle_info({:stop, reason}, state), do: {:stop, reason, state}
   def handle_info(:timeout, state), do: {:stop, :normal, state}
   def handle_info({:EXIT, _, reason}, state), do: {:stop, reason, state}
-  def handle_info(_, state), do: {:noreply, state}
+
+  def handle_info(msg, state) do
+    IO.inspect({msg, state})
+    case pop_in(state, [:wait_for, msg]) do
+      {fun, new_state} when is_function(fun, 1) ->
+        fun.(msg)
+        {:noreply, new_state}
+
+      _ ->
+        {:noreply, state}
+    end
+  end
 end
