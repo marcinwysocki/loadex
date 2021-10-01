@@ -4,7 +4,7 @@ defmodule Loadex.MixProject do
   def project do
     [
       app: :loadex,
-      version: "0.1.0",
+      version: "0.0.1",
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -32,7 +32,7 @@ defmodule Loadex.MixProject do
     [
       files: ~w(lib .formatter.exs mix.exs README.md LICENSE),
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/marcinwysocki/taskmaster"},
+      links: %{"GitHub" => "https://github.com/marcinwysocki/loadex"},
       maintainers: ["Marcin Wysocki"]
     ]
   end
