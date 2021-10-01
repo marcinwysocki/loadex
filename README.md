@@ -5,7 +5,7 @@ A simple distributed load test runner.
 `Loadex` was created with two things in mind - genarating huge loads in a controlled manner, while being able to fully customize the test's flow.
 These goals are achieved by using plain Elixir to create *scenarios* and then laveraging Elixir's massive concurrency capabilities to run them on one or multiple machines.
 
-~~Docs can be found at [https://hexdocs.pm/loadex](https://hexdocs.pm/loadex).~~ (not yet, but soon!)
+Docs can be found at [https://hexdocs.pm/loadex](https://hexdocs.pm/loadex).
 
 ## Installation
 
@@ -14,7 +14,7 @@ Add `loadex` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:loadex, "~> 0.0.1"}
+    {:loadex, "~> 0.1.0"}
   ]
 end
 ```
