@@ -14,7 +14,7 @@ Add `loadex` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:loadex, "~> 0.1.0"}
+    {:loadex, "~> 0.0.1"}
   ]
 end
 ```
@@ -47,4 +47,4 @@ Then:
 iex> Loadex.run(scenario: "./scenarios/example_scenario.exs", rate: 30, restart: true)
 ```
 
-~~More information can be found in [the docs](https://hexdocs.pm/loadex)~~ (not yet, but soon!)
+More information can be found in [the docs](https://hexdocs.pm/loadex)

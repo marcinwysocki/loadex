@@ -95,8 +95,14 @@ defmodule Loadex.Scenario do
       end
 
   """
+
+  @typedoc false
   @type match_pattern :: Macro.t()
+
+  @typedoc false
   @type do_block :: [{:do, Macro.t()}]
+
+  @typedoc false
   @type execution_mode :: :hibernate | :standby
 
   defmodule Loader do
