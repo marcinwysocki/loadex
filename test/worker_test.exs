@@ -167,10 +167,41 @@ defmodule Loadex.Test.WorkerTest do
 
       refute_received {:random_msg, :random_value}
 
+      :timer.sleep(100)
+
       send(pid, {:random_msg, :random_value})
 
-
       assert_receive {:random_msg, :random_value}
+    end
+
+    test "works within a loop" do
+      test_pid = self()
+
+      ControlCenter.add_command(fn _ ->
+        Worker.loop(
+          2,
+          fn iteration ->
+            Worker.wait_for({:msg, iteration}, fn _ ->
+              send(test_pid, {:done, iteration})
+            end)
+          end,
+          sleep: 200
+        )
+      end)
+
+      spec = Spec.new(1, 1)
+      {:ok, pid} = Worker.start_link(FakeScenario, spec)
+
+      assert_receive {:loop, 1}
+
+      :timer.sleep(50)
+      refute_received {:loop, 2}
+
+      :timer.sleep(50)
+      refute_received {:loop, 2}
+
+      :timer.sleep(110)
+      assert_received {:loop, 2}
     end
   end
 end

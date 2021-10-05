@@ -73,7 +73,6 @@ defmodule Loadex.Runner.Worker do
   def handle_info({:EXIT, _, reason}, state), do: {:stop, reason, state}
 
   def handle_info(msg, state) do
-    IO.inspect({msg, state})
     case pop_in(state, [:wait_for, msg]) do
       {fun, new_state} when is_function(fun, 1) ->
         fun.(msg)
