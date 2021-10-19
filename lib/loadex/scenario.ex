@@ -153,6 +153,7 @@ defmodule Loadex.Scenario do
           loop: 4,
           loop_after: 4,
           loop_after: 5,
+          wait_for: 2,
           end_scenario: 0
         ]
 
@@ -312,11 +313,40 @@ defmodule Loadex.Scenario do
     end
   end
 
+
   defp do_loop(match, block) do
     quote do
       fn unquote(match) ->
         unquote(block)
       end
+    end
+  end
+
+  @spec wait_for(
+          match :: match_pattern(),
+          do_block()
+        ) :: Macro.t()
+  @doc """
+  Allows user to act upon receiving a specific message.
+
+      wait_for {:msg, message} do
+        IO.puts("{message}")
+      end
+
+  Params:
+  * `match` - a match pattern for a specific message
+  """
+  defmacro wait_for(match, do: block) do
+    msg  = Macro.escape(match)
+
+    quote bind_quoted: [msg: msg, fun: do_wait_for(match, block)] do
+      Loadex.Runner.Worker.wait_for(nil, fun)
+    end
+  end
+
+  defp do_wait_for(match, block) do
+    quote do
+      fn unquote(match) -> unquote(block) end
     end
   end
 

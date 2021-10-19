@@ -200,24 +200,23 @@ defmodule Loadex.Test.WorkerTest do
 
     test "control messages like 'stop' are handled at any time" do
       Process.flag(:trap_exit, true)
+    end
 
+    # This behaviour is a subject to change
+    test "doesn't actually block the process" do
       test_pid = self()
 
       ControlCenter.add_command(fn _ ->
         Worker.wait_for({:msg, 1}, fn msg -> send(test_pid, msg) end)
         Worker.wait_for({:msg, 2}, fn msg -> send(test_pid, msg) end)
-        Worker.stop()
+
+        send(test_pid, :didnt_wait)
       end)
 
       spec = Spec.new(1, 1)
       {:ok, pid} = Worker.start_link(FakeScenario, spec)
 
-      send(pid, {:msg, 1})
-      send(pid, {:msg, 2})
-
-      refute_receive {:msg, 1}, 100
-      refute_receive {:msg, 2}, 100
-      assert_receive {:EXIT, ^pid, _}
+      assert_receive :didnt_wait
     end
   end
 end
