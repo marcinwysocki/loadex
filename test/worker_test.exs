@@ -174,34 +174,50 @@ defmodule Loadex.Test.WorkerTest do
       assert_receive {:random_msg, :random_value}
     end
 
-    test "works within a loop" do
+    test "has 'blocking' semantics - messages are awaited for synchronously" do
       test_pid = self()
 
       ControlCenter.add_command(fn _ ->
-        Worker.loop(
-          2,
-          fn iteration ->
-            Worker.wait_for({:msg, iteration}, fn _ ->
-              send(test_pid, {:done, iteration})
-            end)
-          end,
-          sleep: 200
-        )
+        Worker.wait_for({:msg, 1}, fn msg -> send(test_pid, msg) end)
+        Worker.wait_for({:msg, 2}, fn msg -> send(test_pid, msg) end)
       end)
 
       spec = Spec.new(1, 1)
       {:ok, pid} = Worker.start_link(FakeScenario, spec)
 
-      assert_receive {:loop, 1}
+      :timer.sleep(100)
 
-      :timer.sleep(50)
-      refute_received {:loop, 2}
+      send(pid, {:msg, 2})
+      refute_receive {:msg, 2}, 100
 
-      :timer.sleep(50)
-      refute_received {:loop, 2}
+      send(pid, {:msg, 1})
+      assert_receive {:msg, 1}, 100
+      refute_receive {:msg, 2}, 100
 
-      :timer.sleep(110)
-      assert_received {:loop, 2}
+      send(pid, {:msg, 2})
+      assert_receive {:msg, 2}, 100
+    end
+
+    test "control messages like 'stop' are handled at any time" do
+      Process.flag(:trap_exit, true)
+
+      test_pid = self()
+
+      ControlCenter.add_command(fn _ ->
+        Worker.wait_for({:msg, 1}, fn msg -> send(test_pid, msg) end)
+        Worker.wait_for({:msg, 2}, fn msg -> send(test_pid, msg) end)
+        Worker.stop()
+      end)
+
+      spec = Spec.new(1, 1)
+      {:ok, pid} = Worker.start_link(FakeScenario, spec)
+
+      send(pid, {:msg, 1})
+      send(pid, {:msg, 2})
+
+      refute_receive {:msg, 1}, 100
+      refute_receive {:msg, 2}, 100
+      assert_receive {:EXIT, ^pid, _}
     end
   end
 end
