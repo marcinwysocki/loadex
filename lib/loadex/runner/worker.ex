@@ -1,11 +1,16 @@
 defmodule Loadex.Runner.Worker do
   @moduledoc false
+  alias Loadex.Runner.Worker.WaitFor
   alias Loadex.Scenario.Spec
 
   use GenServer
 
   def loop(left, fun, opts \\ []) do
     send(self(), {:loop, left, 0, opts, fun})
+  end
+
+  def wait_for(msg, timeout \\ 5000, fun) do
+    send(self(), {:wait_for, msg, timeout, fun})
   end
 
   def stop(reason \\ :normal) do
@@ -19,9 +24,10 @@ defmodule Loadex.Runner.Worker do
   def init(state) do
     Process.flag(:trap_exit, true)
 
+    {:ok, handler} = WaitFor.start_link()
     GenServer.cast(self(), :run)
 
-    {:ok, state}
+    {:ok, Map.put_new(state, :wait_for_handler, handler)}
   end
 
   def terminate(_, %{mod: mod, spec: %Spec{seed: seed}}) do
@@ -60,8 +66,22 @@ defmodule Loadex.Runner.Worker do
     end
   end
 
+  def handle_info({:wait_for, msg, timeout, fun}, %{wait_for_handler: pid} = state) do
+    WaitFor.enqueue(pid, msg, timeout, fun)
+
+    noreply(state)
+  end
+
   def handle_info({:stop, reason}, state), do: {:stop, reason, state}
   def handle_info(:timeout, state), do: {:stop, :normal, state}
   def handle_info({:EXIT, _, reason}, state), do: {:stop, reason, state}
-  def handle_info(_, state), do: {:noreply, state}
+
+  def handle_info(msg, %{wait_for_handler: pid} = state) do
+    WaitFor.send(pid, msg)
+    noreply(state)
+  end
+
+  #### HELPERS
+
+  defp noreply(state), do: {:noreply, state}
 end

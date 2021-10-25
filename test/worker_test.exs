@@ -153,4 +153,70 @@ defmodule Loadex.Test.WorkerTest do
       assert_received {:loop, 2}
     end
   end
+
+  describe "wait_for/3" do
+    test "calls the callback with received message" do
+      test_pid = self()
+
+      ControlCenter.add_command(fn _ ->
+        Worker.wait_for({:random_msg, :random_value}, fn msg -> send(test_pid, msg) end)
+      end)
+
+      spec = Spec.new(1, 1)
+      {:ok, pid} = Worker.start_link(FakeScenario, spec)
+
+      refute_received {:random_msg, :random_value}
+
+      :timer.sleep(100)
+
+      send(pid, {:random_msg, :random_value})
+
+      assert_receive {:random_msg, :random_value}
+    end
+
+    test "has 'blocking' semantics - messages are awaited for synchronously" do
+      test_pid = self()
+
+      ControlCenter.add_command(fn _ ->
+        Worker.wait_for({:msg, 1}, fn msg -> send(test_pid, msg) end)
+        Worker.wait_for({:msg, 2}, fn msg -> send(test_pid, msg) end)
+      end)
+
+      spec = Spec.new(1, 1)
+      {:ok, pid} = Worker.start_link(FakeScenario, spec)
+
+      :timer.sleep(100)
+
+      send(pid, {:msg, 2})
+      refute_receive {:msg, 2}, 100
+
+      send(pid, {:msg, 1})
+      assert_receive {:msg, 1}, 100
+      refute_receive {:msg, 2}, 100
+
+      send(pid, {:msg, 2})
+      assert_receive {:msg, 2}, 100
+    end
+
+    test "control messages like 'stop' are handled at any time" do
+      Process.flag(:trap_exit, true)
+    end
+
+    # This behaviour is a subject to change
+    test "doesn't actually block the process" do
+      test_pid = self()
+
+      ControlCenter.add_command(fn _ ->
+        Worker.wait_for({:msg, 1}, fn msg -> send(test_pid, msg) end)
+        Worker.wait_for({:msg, 2}, fn msg -> send(test_pid, msg) end)
+
+        send(test_pid, :didnt_wait)
+      end)
+
+      spec = Spec.new(1, 1)
+      {:ok, pid} = Worker.start_link(FakeScenario, spec)
+
+      assert_receive :didnt_wait
+    end
+  end
 end

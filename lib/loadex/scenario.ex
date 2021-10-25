@@ -153,6 +153,7 @@ defmodule Loadex.Scenario do
           loop: 4,
           loop_after: 4,
           loop_after: 5,
+          wait_for: 2,
           end_scenario: 0
         ]
 
@@ -317,6 +318,39 @@ defmodule Loadex.Scenario do
       fn unquote(match) ->
         unquote(block)
       end
+    end
+  end
+
+  @spec wait_for(
+          match :: match_pattern(),
+          do_block()
+        ) :: Macro.t()
+  @doc """
+  Allows user to act upon receiving a specific message.
+
+      wait_for {:msg, message} do
+        IO.puts("{message}")
+      end
+
+  While this macro has blocking semantics, in a sense it will execute blocks for consecutive calls
+  one after another, it __doesn't actually block the process__.
+  This means any code placed after `wait_for/2` will be executed immediately.
+  For blocking behaviour, use `receive/1`.
+
+  Params:
+  * `match` - a match pattern for a specific message
+  """
+  defmacro wait_for(match, do: block) do
+    msg = Macro.escape(match)
+
+    quote bind_quoted: [msg: msg, fun: do_wait_for(match, block)] do
+      Loadex.Runner.Worker.wait_for(msg, fun)
+    end
+  end
+
+  defp do_wait_for(match, block) do
+    quote do
+      fn unquote(match) -> unquote(block) end
     end
   end
 
