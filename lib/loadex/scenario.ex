@@ -313,7 +313,6 @@ defmodule Loadex.Scenario do
     end
   end
 
-
   defp do_loop(match, block) do
     quote do
       fn unquote(match) ->
@@ -337,10 +336,10 @@ defmodule Loadex.Scenario do
   * `match` - a match pattern for a specific message
   """
   defmacro wait_for(match, do: block) do
-    msg  = Macro.escape(match)
+    msg = Macro.escape(match)
 
     quote bind_quoted: [msg: msg, fun: do_wait_for(match, block)] do
-      Loadex.Runner.Worker.wait_for(nil, fun)
+      Loadex.Runner.Worker.wait_for(msg, fun)
     end
   end
 
