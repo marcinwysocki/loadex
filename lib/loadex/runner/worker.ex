@@ -18,7 +18,7 @@ defmodule Loadex.Runner.Worker do
   end
 
   def start_link(mod, spec) do
-    GenServer.start_link(__MODULE__, %{mod: mod, spec: spec, wait_for_queue: []})
+    GenServer.start_link(__MODULE__, %{mod: mod, spec: spec})
   end
 
   def init(state) do

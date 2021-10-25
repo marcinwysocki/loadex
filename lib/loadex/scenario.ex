@@ -332,6 +332,11 @@ defmodule Loadex.Scenario do
         IO.puts("{message}")
       end
 
+  While this macro has blocking semantics, in a sense it will execute blocks for consecutive calls
+  one after another, it __doesn't actually block the process__.
+  This means any code placed after `wait_for/2` will be executed immediately.
+  For blocking behaviour, use `receive/1`.
+
   Params:
   * `match` - a match pattern for a specific message
   """

@@ -12,9 +12,7 @@ defmodule ExampleScenario do
     # create an async loop, with 10 repetitions every 500 ms
     loop_after 500, 10, iteration do
 
-      # we'll start a separate process for each iteration
-      # and then send messages to the main scenario process
-      # to simulate incoming messages
+      # we'll simulate messages incoming from external processes
       task =
         Task.start(fn ->
           IO.puts("My number is #{index}, iteration #{iteration}!")
@@ -22,6 +20,7 @@ defmodule ExampleScenario do
           :timer.send_after(iteration * 20, self_pid, :bye)
         end)
 
+      # to wait for a message while _blocking_ the process, use receive
       receive do
         :hello ->
           IO.puts "Hello from loop in #{index}, iteration #{iteration}!"
@@ -37,6 +36,7 @@ defmodule ExampleScenario do
         end
     end
 
+    # to wait for messages without blocking the process, use wait_for
     wait_for {:msg, :bye_bye} do
       IO.puts "Bye!"
 
